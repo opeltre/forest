@@ -25,7 +25,7 @@ function handler () {
     };
 
     function my (req, res) {
-
+        res = res || ({send: console.log});
         return Promise
             .all([
                 my.getDom(),
@@ -84,6 +84,21 @@ function handler () {
 
     return __.getset(my, self);
     
+
+    function linkScript (doc, src) {
+        let node = doc.head,
+            script = doc.createElement('script');
+        script.src = paths.script(s);
+        node.appendChild(script);
+    }
+
+    function linkStyle (doc, href) {
+        let sheet = doc.createElement('link');
+        sheet.rel = "stylesheet";
+        sheet.href = paths.style(s);
+        doc.head.appendChild(sheet);
+    }
+
 }
 
 /* ... */
@@ -99,21 +114,6 @@ let defaultPaths = {
 };
 
 let paths = defaultPaths;
-
-function linkScript (doc, src) {
-    let node = doc.head,
-        script = doc.createElement('script');
-    script.src = paths.script(s);
-    node.appendChild(script);
-}
-
-function linkStyle (doc, href) {
-    let sheet = doc.createElement('link');
-    sheet.rel = "stylesheet";
-    sheet.href = paths.style(s);
-    doc.head.appendChild(sheet);
-}
-
 /*** vv_ ***/
 
 function vv_ (name) {
@@ -131,5 +131,7 @@ vv_.new =
         vv_.nodes[name] = handler();
         return vv_.nodes[name];
     };
+
+vv_.forest = handler;
 
 module.exports = {vv_, vv, _vv, __};
