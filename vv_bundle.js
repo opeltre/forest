@@ -48,7 +48,7 @@ __.logs =
 __.forKeys = 
     (...fs) => 
         obj => Object.keys(obj).forEach(
-            k => __.pipe(...fs)(k, obj[k])
+            k => __.pipe(...fs)(obj[k], k)
         );
 
 __.mapKeys = 
@@ -77,6 +77,31 @@ __.emptyKeys =
         return out;
     };
 
+__.getKeys =
+    obj => 
+        R => {
+            let get = x => 
+                typeof x === 'function'
+                    ? x
+                    : __.return(x);
+
+            let promise = ([x,k]) =>
+                Promise.resolve(R)
+                    .then(get(x))
+                    .then(y => [y,k]);
+
+            return Promise
+                .all(__.toPairs(obj).map(promise))
+                .then(__.toKeys);
+        };
+
+__.updateKeys = 
+    (obj, ...objs) => obj
+        ? obj0 => __.getKeys(obj)(obj0)
+            .then(obj1 => Object.assign(obj0, obj1))
+            .then(__.updateKeys(...objs))
+        : obj0 => Promise.resolve(obj0 || {});
+
 __.toKeys = 
     pairs => {
         let out = {};
@@ -91,7 +116,7 @@ __.toPairs =
         let out = [];
         __.forKeys(
             (v,k) => out.push([v,k])
-        );
+        )(obj);
         return out;
     };
 
@@ -162,6 +187,7 @@ function vv (tag, attr, branch) {
             .nodeAppend(append);
         /** branch **/
         $m(branches).map($m)
+            .map(parseBranch)
             .map(b => b.link(my))
             .forEach(b => b(model));
         /** plant **/
@@ -365,7 +391,7 @@ function vv (tag, attr, branch) {
 
     function parse (tag, attr={}, branch=[]) {
         /** empty {} attr is boring **/
-        if (Array.isArray(attr))
+        if (Array.isArray(attr) || typeof attr === 'function')
             [attr, branch] = [{}, attr];
         /** match "tagname#id.class.class2" **/
         let {classes, tagname, id} = vv.parse(tag);
@@ -373,8 +399,6 @@ function vv (tag, attr, branch) {
             Object.assign(attr, {id});
         if (classes.length)
             Object.assign(attr, {class: classes.join(' ')});
-        /** parse branches **/
-        branch = branch.map(parseBranch);
         /** out! **/
         return {tag: tagname, attr, branch};
     }
@@ -486,7 +510,7 @@ function _vv (name, svg) {
 
             let connect = 
                 ([n, attrs]) => __.forKeys(
-                    (arrow, values) => app.connect(arrow, n, values)
+                    (values, arrow) => app.connect(arrow, n, values)
                 )(attrs || {});
 
             let plant = 
@@ -561,7 +585,7 @@ _vv.connect =
 
 _vv.link = 
     __.forKeys(
-        (sig, xs) => _vv.connect(sig, vv._(xs))
+        (xs, sig) => _vv.connect(sig, vv._(xs))
     )
 
 vv._ = 

@@ -47,7 +47,7 @@ __.logs =
 __.forKeys = 
     (...fs) => 
         obj => Object.keys(obj).forEach(
-            k => __.pipe(...fs)(k, obj[k])
+            k => __.pipe(...fs)(obj[k], k)
         );
 
 __.mapKeys = 
@@ -76,6 +76,31 @@ __.emptyKeys =
         return out;
     };
 
+__.getKeys =
+    obj => 
+        R => {
+            let get = x => 
+                typeof x === 'function'
+                    ? x
+                    : __.return(x);
+
+            let promise = ([x,k]) =>
+                Promise.resolve(R)
+                    .then(get(x))
+                    .then(y => [y,k]);
+
+            return Promise
+                .all(__.toPairs(obj).map(promise))
+                .then(__.toKeys);
+        };
+
+__.updateKeys = 
+    (obj, ...objs) => obj
+        ? obj0 => __.getKeys(obj)(obj0)
+            .then(obj1 => Object.assign(obj0, obj1))
+            .then(__.updateKeys(...objs))
+        : obj0 => Promise.resolve(obj0 || {});
+
 __.toKeys = 
     pairs => {
         let out = {};
@@ -90,7 +115,7 @@ __.toPairs =
         let out = [];
         __.forKeys(
             (v,k) => out.push([v,k])
-        );
+        )(obj);
         return out;
     };
 

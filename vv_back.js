@@ -10,15 +10,34 @@ const fs = require('fs'),
 
     _vv('b', [M => M.msg]);
 
+    _vv <: (req, res)
+        .parse <: req -> R
+        .model <: R -> M
+
     app.get('/a', vv_('a'));
 */
 
+/* ... */
+
+let ifRelative = (f) => 
+    name => ( name[0] === '/' || /^https?:\/\//.test(name) )
+        ? name 
+        : f(name);
+
+let defaultPaths = {
+    style : ifRelative(name => '/style/'+ name + '.css'), 
+    script : ifRelative(name => '/lib/' + name + '.js')
+};
+
+/*********/
+
+let paths = defaultPaths;
 function handler () {
 
     let self = {
         html : null,
         nodes : [],
-        model: [],
+        model: {},
         parse: __.id,
         scripts: [],
         style: [],
@@ -32,6 +51,7 @@ function handler () {
                 my.getModel(req)
             ])
             .then(__.do(
+                __.log, 
                 __.X(my.render),
                 __.X(my.link),
                 __.X(my.send(res))
@@ -52,11 +72,14 @@ function handler () {
             let R = self.parse(req),
                 M = self.model;
 
-            let promise = (x, k) => Promise.resolve(
-                typeof x === 'function'
-                    ? [x(R), k]
-                    : [x, k]
-            );
+            let promise = ([x, k]) => Promise
+                .resolve(R)
+                .then(
+                    typeof x === 'function'
+                        ? x
+                        : __.return(x) 
+                )
+                .then(y => [y,k]);
            
             return Promise
                 .all(__.toPairs(M).map(promise))
@@ -70,7 +93,7 @@ function handler () {
 
     my.link = 
         dom => {
-            let doc = dom.window.document;
+            let d = dom.window.document;
             self.scripts.forEach(s => linkScript(d,s))
             self.style.forEach(s => linkStyle(d,s));
         }
@@ -88,32 +111,19 @@ function handler () {
     function linkScript (doc, src) {
         let node = doc.head,
             script = doc.createElement('script');
-        script.src = paths.script(s);
+        script.src = paths.script(src);
         node.appendChild(script);
     }
 
     function linkStyle (doc, href) {
         let sheet = doc.createElement('link');
         sheet.rel = "stylesheet";
-        sheet.href = paths.style(s);
+        sheet.href = paths.style(href);
         doc.head.appendChild(sheet);
     }
 
 }
 
-/* ... */
-
-let ifRelative = (f) => 
-    name => ( name[0] === '/' || /^https?:\/\//.test(name) )
-        ? name 
-        : f(name);
-
-let defaultPaths = {
-    style : ifRelative(name => '/style/'+ name + '.css'), 
-    script : ifRelative(name => '/lib/' + name + '.js')
-};
-
-let paths = defaultPaths;
 /*** vv_ ***/
 
 function vv_ (name) {

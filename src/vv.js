@@ -34,6 +34,7 @@ function vv (tag, attr, branch) {
             .nodeAppend(append);
         /** branch **/
         $m(branches).map($m)
+            .map(parseBranch)
             .map(b => b.link(my))
             .forEach(b => b(model));
         /** plant **/
@@ -237,7 +238,7 @@ function vv (tag, attr, branch) {
 
     function parse (tag, attr={}, branch=[]) {
         /** empty {} attr is boring **/
-        if (Array.isArray(attr))
+        if (Array.isArray(attr) || typeof attr === 'function')
             [attr, branch] = [{}, attr];
         /** match "tagname#id.class.class2" **/
         let {classes, tagname, id} = vv.parse(tag);
@@ -245,8 +246,6 @@ function vv (tag, attr, branch) {
             Object.assign(attr, {id});
         if (classes.length)
             Object.assign(attr, {class: classes.join(' ')});
-        /** parse branches **/
-        branch = branch.map(parseBranch);
         /** out! **/
         return {tag: tagname, attr, branch};
     }

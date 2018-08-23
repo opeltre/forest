@@ -20,7 +20,7 @@ function _vv (name, svg) {
 
             let connect = 
                 ([n, attrs]) => __.forKeys(
-                    (arrow, values) => app.connect(arrow, n, values)
+                    (values, arrow) => app.connect(arrow, n, values)
                 )(attrs || {});
 
             let plant = 
@@ -95,7 +95,7 @@ _vv.connect =
 
 _vv.link = 
     __.forKeys(
-        (sig, xs) => _vv.connect(sig, vv._(xs))
+        (xs, sig) => _vv.connect(sig, vv._(xs))
     )
 
 vv._ = 
