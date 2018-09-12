@@ -10,9 +10,9 @@ const fs = require('fs'),
 
     _vv('b', [M => M.msg]);
 
-    _vv <: (req, res)
-        .parse <: req -> R
-        .model <: R -> M
+    _vv :<-: (req, res)
+        .parse :<-: req -> R
+        .model :<-: R -> M
 
     app.get('/a', vv_('a'));
 */
@@ -37,13 +37,15 @@ function handler () {
     let self = {
         html : null,
         nodes : [],
-        model: {},
+        model: [],
         parse: __.id,
         scripts: [],
         style: [],
     };
 
-    function my (req, res) {
+    let onErr = __.log;
+
+    function my (req, res, next) {
         res = res || ({send: console.log});
         return Promise
             .all([
@@ -51,11 +53,11 @@ function handler () {
                 my.getModel(req)
             ])
             .then(__.do(
-                __.log, 
                 __.X(my.render),
                 __.X(my.link),
                 __.X(my.send(res))
-            ));
+            ))
+            .catch(next || onErr)
     }
 
     my.getHtml = 
@@ -70,20 +72,8 @@ function handler () {
     my.getModel = 
         (req) => {
             let R = self.parse(req),
-                M = self.model;
-
-            let promise = ([x, k]) => Promise
-                .resolve(R)
-                .then(
-                    typeof x === 'function'
-                        ? x
-                        : __.return(x) 
-                )
-                .then(y => [y,k]);
-           
-            return Promise
-                .all(__.toPairs(M).map(promise))
-                .then(__.toKeys)
+                Ms = self.model;
+            return __.genKeys(...Ms)(R, {});
         }
             
     my.render =

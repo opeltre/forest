@@ -78,22 +78,30 @@ __.emptyKeys =
     };
 
 __.getKeys =
-    obj => 
-        R => {
-            let get = x => 
-                typeof x === 'function'
-                    ? x
-                    : __.return(x);
+    obj => (...Rs) => {
+        let get = v => 
+            typeof v === 'function'
+                ? __.X(v)
+                : __.return(v);
 
-            let promise = ([x,k]) =>
-                Promise.resolve(R)
-                    .then(get(x))
-                    .then(y => [y,k]);
+        let promise = ([v,k]) =>
+            Promise.resolve(Rs)
+                .then(get(v))
+                .then(u => [u,k]);
 
-            return Promise
-                .all(__.toPairs(obj).map(promise))
-                .then(__.toKeys);
-        };
+        return Promise
+            .all(__.toPairs(obj).map(promise))
+            .then(__.toKeys);
+    };
+
+__.genKeys = 
+    (obj, ...objs) => 
+        obj 
+            ? (R, M={}) => __.getKeys(obj)(R, M)
+                .then(N => Object.assign(M,N))
+                .then(N => __.genKeys(...objs)(R, N))
+            : (R, M) => Promise.resolve(M);
+
 
 __.updateKeys = 
     (obj, ...objs) => obj
